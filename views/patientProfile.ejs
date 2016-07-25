@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <style>
+        #siteBrand{
+            margin-bottom: 0;
+            margin-top: 5px;
+            margin-left: 40px;
+            font-family: 'Tangerine', serif;
+            color: white;
+        }
+        .search-bar-style{
+            min-width: 0;
+            width: auto;
+            display: inline;
+            margin-bottom: 10px;
+        }
+    </style>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <title>Harmony</title>
+    <link href="/views/libs/theme/bower_components/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/views/libs/theme/bower_components/metisMenu/dist/metisMenu.min.css" rel="stylesheet">
+    <link href="/views/libs/theme/dist/css/sb-admin-2.css" rel="stylesheet">
+    <link href="/views/libs/theme/bower_components/font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+    <script src="/views/libs/theme/bower_components/jquery/dist/jquery.min.js"></script>
+    <script src="/views/libs/theme/bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+    <script src="/views/libs/theme/bower_components/metisMenu/dist/metisMenu.min.js"></script>
+    <script src="/views/libs/theme/dist/js/sb-admin-2.js"></script>
+    
+    <script type="text/javascript" src="/views/libs/jquery-1.12.4.min.js"></script>
+    <script type="text/javascript" src="/views/libs/jquery-ui/jquery-ui.min.js"></script>
+
+    
+    <link href="/views/libs/tokenfield/bootstrap-tokenfield.min.css" type="text/css" rel="stylesheet">
+    <link href="/views/libs/jquery-ui/jquery-ui.min.css" type="text/css" rel="stylesheet">
+    <link href="/views/libs/tokenfield/tokenfield-typeahead.min.css" type="text/css" rel="stylesheet">
+    
+    <link href="/views/libs/tokenfield/bootstrap-tokenfield.css" type="text/css" rel="stylesheet">
+    <link href="/views/libs/tokenfield/pygments-manni.css" type="text/css" rel="stylesheet">
+    <link href="/views/libs/tokenfield/tokenfield-typeahead.css" type="text/css" rel="stylesheet">
+
+    <script type="text/javascript" src="/views/libs/tokenfield/typeahead.bundle.min.js"></script>
+    <script type="text/javascript" src="/views/libs/tokenfield/bootstrap-tokenfield.js"></script>
+    <script type="text/javascript" src="/views/libs/tokenfield/bootstrap-tokenfield.min.js"></script>
+    <script type="text/javascript" src="/views/libs/tokenfield/affix.js"></script>
+    <script type="text/javascript" src="/views/libs/tokenfield/docs.min.js"></script>
+    <script type="text/javascript" src="/views/libs/tokenfield/scrollspy.js"></script>
+
+    <script type="text/javascript" src="/views/libs/TimePicki-master/js/timepicki.js"></script>
+    <link rel="stylesheet" type="text/css" href="/views/libs/TimePicki-master/css/timepicki.css">
+</head>
+
+<body>
+    <div id="wrapper">
+        <nav class="navbar navbar-inverse navbar-static-top" role="navigation" style="margin-bottom: 0;margin-top: 0">
+            <div class="navbar-header" style="margin-bottom: 0;margin-top: 0">
+                <h1 id="siteBrand">Harmony</h1>
+            </div>
+            <ul class="nav navbar-nav navbar-right">
+                <li><a href="/logout"><span class="glyphicon glyphicon-log-out"></span> Logout</a></li>
+            </ul>
+            <div class="navbar-default sidebar" role="navigation">
+                <div class="sidebar-nav navbar-collapse">
+                    <ul class="nav" id="side-menu">
+                        <li style="text-align:center;">
+                            <img src="/views/HarmonyLogo.png" alt="Harmony" style="width:100px;height:207px;">
+                            <h2 style="margin-left:10px;margin-right:10px"> Welcome</h2>
+                            <h3 style="margin-left:10px;margin-right:10px"> <%= user.local.name %></h3>
+                            <br></br>
+                        </li>
+                        <li>
+                            <a href="/profile"><i class="fa fa-dashboard fa-fw"></i> Dashboard</a>
+                        </li>
+                        <li>
+                            <a href="/addPatient"><span class="fa fa-user"></span> Add Patient</a>
+                        </li>
+                        <li>
+                            <a href="#"> Downloads</a>
+                            <ul class="nav nav-second-level">
+                                <li>
+                                    <a href="javascript:downloadCallLogCSV();"> Call Log CSV</a>
+                                </li>
+                                <li>
+                                    <a href="javascript:downloadAppUsageCSV();"> App usage CSV</a>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+        <div id="page-wrapper">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <h1 class="page-header">Dashboard</h1>
+                    </div>
+                </div>
+                <div class = "row">
+                    <div class="col-lg-6">
+                        <%if (patient != null) { %>
+                            <ul class="list-group">
+                              <li class="list-group-item"><b>Name:</b> <%= patient.patientName %></li>
+                              <li class="list-group-item"><b>AIIMS-ID: </b><%= patient.aiimsId %></li>
+                              <li class="list-group-item"><b>Email-Id: </b><%= patient.emailId %></li>
+                              <li class="list-group-item"><b>Phone No.: </b><%= patient.selfPhn %></li>
+                              <li class="list-group-item"><b>Caretaker Phone No.: </b><%= patient.caretakerPhn %></li>
+                              <li class="list-group-item" id="alarmTime"><b>Current Alarm Time (24-hour):</b></li>
+                              <li class="list-group-item" id="numberOfSteps"><b>Number of Steps:</b> <%= patient.numberOfSteps %></li>
+                              <li class="list-group-item" id="stepsWaitingTime"><b>Steps waiting time:</b></li>
+                            </ul>
+                        <% } %>
+                    </div>
+                    <div class="col-lg-6">
+                        <h3>Current Activities</h3>
+                        <div class="col-lg-10">
+                            <input type="text" class="form-control" id="tokenfield" />
+                            <br>
+                        </div>
+                        <div class="col-lg-10" style="text-align: center;">
+                            <button type="button" class="btn btn-info" onclick="setActivities()">Update Activities</button>
+                        </div>
+                        
+                        <!-- <p id="actReturn">hello</p> -->
+                    </div>
+                    
+                </div>
+                <div class="panel-body">
+                    <h1>Set Alarm</h1>
+                    <div>
+                        <div class="col-md-4">
+                            <h3>Alarm time</h3>
+                            <input type="text" id="setAlarmTime"/>
+                        </div>
+                        <div class="col-md-4">
+                            <h3>Number of steps</h3>
+                            <input type="number" id = "steps"/>
+                        </div>
+                        <div class="col-md-4">
+                            <h3>Steps waiting time</h3>
+                            <input type="text" id = "waitingTime"/>
+                        </div>
+                        
+                    </div>
+                    <br></br>
+                    <br></br>
+                    <br></br>
+                    <div style="text-align: center;">
+                        <button type="button" class="btn btn-lg btn-danger btn-outline" onclick="setOption()">Submit</button>
+                    </div>
+                
+                    
+                </div>
+                <!-- <div style="text-align: center;">
+                    <button type="button" class="btn btn-lg btn-danger" onclick="downloadCallLogCSV()">Download Call logs CSV</button>
+                    <button type="button" class="btn btn-lg btn-danger" onclick="downloadAppUsageCSV()">Download App usage CSV</button>
+                </div>     -->
+            </div>
+        </div>
+    </div>
+    <script>
+        function addAlarm(patId){
+            location.href = "http://nms.iiitd.edu.in:9144/addAlarm/"+patId;
+        }
+        function patientProfile(patId){
+            location.href = "http://nms.iiitd.edu.in:9144/patientProfile/"+patId;
+        }
+        function downloadCallLogCSV(){
+            location.href = "http://nms.iiitd.edu.in:9144/patientProfile/<%= patient.id %>/downloadCallog";
+        }
+        function downloadAppUsageCSV(){
+            location.href = "http://nms.iiitd.edu.in:9144/patientProfile/<%= patient.id %>/downloadAppUsage";
+        }
+        
+        $(document).ready(function(){
+            $("#setAlarmTime").timepicki({
+                overflow_minutes:true,
+                increase_direction:'up',
+                start_time: ["08", "00", "AM"],
+                reset: true
+            });
+            $("#waitingTime").timepicki({
+                increase_direction:'up',
+                start_time: ["00", "00"],
+                show_meridian:false,
+                reset: true
+            });
+            if(<%= patient.stepsWaitingTime %> == -1){
+                $("#stepsWaitingTime").html("Steps waiting time: Not set yet.");
+                $("#alarmTime").html("Current Alarm Time: Not set yet.");
+                $("#numberOfSteps").html("Number of Steps: Not set yet.");
+            }
+            else{
+                var stepsTimeHours = Math.floor("<%= patient.stepsWaitingTime %>" / 3600);
+                var stepsTimeMin = ("<%= patient.stepsWaitingTime %>" - stepsTimeHours*3600)/60;
+                var d = new Date(Number(<%= patient.alarmStartTime %>));
+                $("#stepsWaitingTime").html("<b>Steps waiting time: </b>"+stepsTimeHours+" hours "+stepsTimeMin+" minutes");
+                $("#alarmTime").html("<b>Current Alarm Time: </b>"+d.getHours()+" : "+d.getMinutes()); 
+            }
+            $('#tokenfield').tokenfield('setTokens', "<%= patient.activities %>")
+          });
+        function setActivities(){
+            var patId = "<%= patient.id %>"
+            console.log(patId);
+            var activities = $('#tokenfield').tokenfield('getTokensList').split(', ');
+            
+            $.post("/setActivities",
+                {
+                    patId: patId,
+                    activities:$('#tokenfield').tokenfield('getTokensList').split(', ')
+                },
+                function(data, status){
+                    console.log(status);
+                    if(status=="success"){
+                        alert("Activities set successfully.");
+                        //window.location.href="/profile";
+                    }
+                    else{
+                        alert("Error while setting the Activities.");
+                    }
+                });
+        }
+        $('#tokenfield').tokenfield({
+          autocomplete: {
+            source: ['brushing','bathing','breakfast','walking','yoga'],
+            delay: 50
+          },
+          showAutocompleteOnFocus: true
+        })
+        $('#tokenfield').on('tokenfield:createtoken', function (e) {
+            var actArr = $('#tokenfield').tokenfield('getTokensList').split(', ');
+            if(actArr.indexOf(e.attrs.value)!=-1){
+                return false;
+            }
+        })
+        function setOption(){
+            if($('#setAlarmTime').val()!="" && $('#waitingTime').val()!="" && $('#steps').val()>=0){
+                var d = new Date();
+                var time = $('#setAlarmTime').val().split(" : ");
+                console.log(time);
+                if(time[2]=="PM")
+                    d.setHours(Number(time[0])+12);
+                else
+                    d.setHours(Number(time[0]));
+                d.setMinutes(time[1]);
+                console.log(d);
+                //var urlParams = window.location.href.split("/");
+                //var patId = urlParams[urlParams.length-1];
+                var patId = "<%= patient.id %>"
+                //console.log(patId)
+                var stepTime = $('#waitingTime').val().split(" : ")[0]*3600 + $('#waitingTime').val().split(" : ")[1]*60;
+                console.log(d);
+                $.post("/addAlarm",
+                    {
+                        patId: patId,
+                        alarmTime:d,
+                        numberOfSteps:$('#steps').val(),
+                        stepsWaitingTime:stepTime
+                    },
+                    function(data, status){
+                        console.log(status);
+                        if(status=="success"){
+                            alert("Alarm set successfully.");
+                            window.location.href="/profile";
+                        }
+                        else{
+                            alert("Error while setting the alarm.");
+                        }
+                    });
+            }
+            else{
+                alert("Please fill the all the details.")
+            }
+        }
+    </script>
+<!-- f3/8 -->
+</body>
+
+</html>
