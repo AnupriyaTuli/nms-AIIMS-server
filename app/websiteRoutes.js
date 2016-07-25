@@ -10,6 +10,14 @@ var json2csv = require('json2csv');
 var fs = require('fs');
 var schedule = require('node-schedule');
 
+var englishToHindi = {
+	yoga:"योग",
+	walking:"घूमना",
+	bathing:"नहाना",
+	breakfast:"सुबह का नाश्ता",
+	brushing:"ब्रश करना"
+}
+
 module.exports = function(app,passport){
 	app.get('/', isLoggedIn, function(req,res){
 		if(req.user.local.username=="admin"){
@@ -194,6 +202,8 @@ function isLoggedIn(req, res, next){
 	res.redirect('/login');
 }
 
+
+
 function setPatientActivities(patId, activities, callback){
 	Patient.findOne({ "_id": patId }, function (err, patObj){
 		if(err){
@@ -210,7 +220,12 @@ function setPatientActivities(patId, activities, callback){
 			registrationTokens.push(patObj.gcmToken);
 			var message = new gcm.Message();
 			console.log("Activities updated: ", activities , " sending notification.");
-			message.addData('activities', activities.join(':'));
+			var hindiWords = [];
+			for(var i=0;i<activities.length;i++){
+				hindiWords.push(englishToHindi[activities[i]]);
+			}
+			//for(var i=0;)
+			message.addData('activities', hindiWords.join(":"));
 			message.addData('type', 'activities');
 			var sender = new gcm.Sender('AIzaSyBE_xAnxBh2Z22wPU5dPLTrJm7PtWADKVY');
 			sender.send(message, { registrationTokens: registrationTokens }, function (err, response) {

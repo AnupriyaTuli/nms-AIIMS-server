@@ -11,7 +11,26 @@ var fs = require('fs');
 var schedule = require('node-schedule');
 var path  = require("path");
 
+
+var hindiToEnglish = {
+	"योग":"yoga",
+	"घूमना":"walking",
+	"नहाना":"bathing",
+	"सुबह का नाश्ता":"breakfast",
+	"ब्रश करना":"brushing"
+}
+
+var englishToHindi = {
+	yoga:"योग",
+	walking:"घूमना",
+	bathing:"नहाना",
+	breakfast:"सुबह का नाश्ता",
+	brushing:"ब्रश करना"
+}
+
+
 module.exports = function(app,passport){
+
 
 	/*app.get('/:username/:password',function(req, res){
 		var newUser = new User();
@@ -99,8 +118,14 @@ module.exports = function(app,passport){
 		reqData["aiimsId"] = req.body.aiimsId;
 		reqData["accessToken"] = req.body.access_token;
 		reqData["gcmToken"] = req.body.gcm_token;
-		reqData["activities"] = req.body.activities;
+		//reqData["activities"] = req.body.activities;
 		reqData["timeMillies"] = req.body.currentTime;
+		//var basicActivities = Object.keys(req.body.activities);
+		var toEnglish = {};
+		for(key in req.body.activities){
+			toEnglish[hindiToEnglish[key]] = req.body.activities[key];
+		}
+		reqData["activities"] = toEnglish;
 		//console.log("&&&&&&&&&&&",reqData);
 		updatePatientActivities( reqData["emailId"], reqData["aiimsId"], reqData["accessToken"], reqData["gcmToken"], reqData["activities"],reqData["timeMillies"], function(err, result) {
 		    res.writeHead(200, {
@@ -160,7 +185,13 @@ module.exports = function(app,passport){
 		var reqData = new Array();
 		reqData["aiimsId"] = req.body.aiimsId;
 		reqData["gcmToken"] = req.body.gcm_token;
-		reqData["activities"] = req.body.activities;
+		var toEnglish = {};
+		for(key in req.body.activities){
+			toEnglish[hindiToEnglish[key]] = req.body.activities[key];
+		}
+
+		reqData["activities"] = toEnglish;
+		//reqData["activities"] = req.body.activities;
 		reqData["timeMillies"] = req.body.currentTime;
 		console.log(reqData);
 		updateCaregiverPatientAct(reqData["aiimsId"], reqData["gcmToken"], reqData["activities"],reqData["timeMillies"], function(err, result) {
@@ -224,11 +255,11 @@ function updateCaregiverPatientAct(aiimsId, gcmToken, activities,timeMillies,cal
 			
 		else{
 			var activityNameObj = {
-				Brushing: "caregiverResBrushing", 
-				Bathing: "caregiverResBathing", 
-				Breakfast: "caregiverResBreakfast",
-				Walking: "caregiverResWalking", 
-				Yoga: "caregiverResYoga"
+				brushing: "caregiverResBrushing",
+				bathing: "caregiverResBathing",
+				breakfast: "caregiverResBreakfast",
+				walking: "caregiverResWalking", 
+				yoga: "caregiverResYoga"
 			}
 			var masterCsvObj = {};
 			var basicActivities = Object.keys(activityNameObj);
@@ -555,7 +586,11 @@ function updatePatientActivities(emailId, aiimsId, accessToken, gcmToken, activi
 				var registrationTokens = patObj.caregivers;
 				console.log(registrationTokens);
 				var message = new gcm.Message();
-				message.addData('activities', caregiverGcmArr);
+				var hindiWords = [];
+				for(var i=0;i<caregiverGcmArr.length;i++){
+					hindiWords.push(englishToHindi[caregiverGcmArr[i]]);
+				}
+				message.addData('activities', hindiWords);
 				console.log("Sending activity updation gcm to caregiver.", caregiverGcmArr);
 				var sender = new gcm.Sender('AIzaSyA8IAxu6hYAybpU-3Lmi0OlDqhCu3JJCzE');
 				sender.send(message, { registrationTokens: registrationTokens }, function (err, response) {
@@ -627,7 +662,10 @@ function findPatient(emailId, accessToken, gcmToken, callback){
 				activities = new Array();
 			else
 				activities = patObj.activities;*/
-
+			var hindiWords = [];
+			for(var i=0;i<patObj.activities.length;i++){
+				hindiWords.push(englishToHindi[patObj.activities[i]]);
+			}
 			var patientData = {
 					"aiimsId":patObj.aiimsId,
 				 	"emailId":patObj.emailId,
@@ -635,7 +673,7 @@ function findPatient(emailId, accessToken, gcmToken, callback){
 					"self_ph_Number":patObj.selfPhn,
 					"caretaker_ph_Number": patObj.caretakerPhn,
 					"stepsWaitingTime":patObj.stepsWaitingTime,
-					"activities":patObj.activities,
+					"activities":hindiWords,
 					"numberOfSteps":patObj.numberOfSteps
 				};
 			if(patObj.alarmStartTime!=-1){
