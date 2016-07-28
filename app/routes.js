@@ -123,7 +123,12 @@ module.exports = function(app,passport){
 		//var basicActivities = Object.keys(req.body.activities);
 		var toEnglish = {};
 		for(key in req.body.activities){
-			toEnglish[hindiToEnglish[key]] = req.body.activities[key];
+			if(hindiToEnglish[key]){
+				toEnglish[hindiToEnglish[key]] = req.body.activities[key];	
+			}
+			else{
+				toEnglish[key] = req.body.activities[key];		
+			}
 		}
 		reqData["activities"] = toEnglish;
 		//console.log("&&&&&&&&&&&",reqData);
@@ -174,6 +179,19 @@ module.exports = function(app,passport){
 		reqData["gcmToken"] = req.body.gcm_token;
 		reqData["aiimsId"] = req.body.aiimsId;
 		registerCaregiver(reqData["gcmToken"], reqData["aiimsId"],function(err, result) {
+		    res.writeHead(200, {
+		      'Content-Type' : 'x-application/json'
+		    });
+		    res.end(result);
+		  });
+	})
+
+	app.post("/api/app/caregiver/patientAlert", function(req, res){
+		var reqData = new Array();
+		console.log(req.body);
+		reqData["gcmToken"] = req.body.gcm_token;
+		reqData["aiimsId"] = req.body.aiimsId;
+		caregiverPatientAlert(reqData["aiimsId"], reqData["gcmToken"],function(err, result) {
 		    res.writeHead(200, {
 		      'Content-Type' : 'x-application/json'
 		    });
@@ -241,6 +259,31 @@ var j = schedule.scheduleJob(cronRule, function(){ //every 3 second - */3 * * * 
 		}
 	})
 });
+
+function caregiverPatientAlert(aiimsId, gcmToken, callback){
+	Patient.findOne({aiimsId: aiimsId}, function (err, patObj) {
+		if (err) {
+			console.log(err);
+		} 
+		else if (patObj) {
+			var registrationTokens = patObj.caregivers;
+			var message = new gcm.Message();
+			message.addData('type', "patientAlert");
+			console.log("Sending patient alert to caregiver.");
+			//var sender = new gcm.Sender('AIzaSyA8IAxu6hYAybpU-3Lmi0OlDqhCu3JJCzE');
+			var sender = new gcm.Sender('AIzaSyAEFlaLt2tmQjLJerzJ1NFpwO2v4nQMKHk');
+			sender.send(message, { registrationTokens: registrationTokens }, function (err, response) {
+				if(err) 
+					console.error(err);
+				else 	
+					console.log(response);
+			});
+		}	
+		else {
+			console.log("Patient not registered, could not send patient alert gcm to caregiver.");
+		}
+	});
+}
 
 function updateCaregiverPatientAct(aiimsId, gcmToken, activities,timeMillies,callback){
 	var d = new Date(timeMillies);
@@ -326,13 +369,17 @@ function registerCaregiver(gcmToken, aiimsId, callback){
 			console.log("Patient not found for the given aiimsId.");
 			callback(null,JSON.stringify({"response":"error"}));	
 		}
-			
+		else if(gcmToken==-1){
+			console.log("Caregiver gcm token not provided.");
+			callback(null,JSON.stringify({"response":"error"}));	
+		}
 		else{
 			//console.log("!!!!!!!!!!!!!","\n", gcmToken, "\n", aiimsId)
 			patObj.caregivers = new Array(); //This allows only one caregiver at a time
 			/*if(patObj.caregivers==null){
 				patObj.caregivers = new Array();	
 			}*/
+
 			patObj.caregivers.push(gcmToken);
 			console.log(patObj);
 	      	patObj.save(function (err) {
@@ -588,11 +635,16 @@ function updatePatientActivities(emailId, aiimsId, accessToken, gcmToken, activi
 				var message = new gcm.Message();
 				var hindiWords = [];
 				for(var i=0;i<caregiverGcmArr.length;i++){
-					hindiWords.push(englishToHindi[caregiverGcmArr[i]]);
+					if(englishToHindi[caregiverGcmArr[i]]){
+						hindiWords.push(englishToHindi[caregiverGcmArr[i]]);	
+					}
+					else{
+						hindiWords.push(caregiverGcmArr[i]);	
+					}
 				}
-				message.addData('activities', hindiWords);
+				message.addData('activities', hindiWords.join(":"));
 				console.log("Sending activity updation gcm to caregiver.", caregiverGcmArr);
-				var sender = new gcm.Sender('AIzaSyA8IAxu6hYAybpU-3Lmi0OlDqhCu3JJCzE');
+				var sender = new gcm.Sender('AIzaSyAEFlaLt2tmQjLJerzJ1NFpwO2v4nQMKHk');
 				sender.send(message, { registrationTokens: registrationTokens }, function (err, response) {
 					if(err) 
 						console.error(err);

@@ -164,17 +164,19 @@
         </div>
     </div>
     <script>
+        var uri = "http://nms.iiitd.edu.in:9144"
+        //var uri = "http://localhost:9144"
         function addAlarm(patId){
-            location.href = "http://nms.iiitd.edu.in:9144/addAlarm/"+patId;
+            location.href = uri+"/addAlarm/"+patId;
         }
         function patientProfile(patId){
-            location.href = "http://nms.iiitd.edu.in:9144/patientProfile/"+patId;
+            location.href = uri+"/patientProfile/"+patId;
         }
         function downloadCallLogCSV(){
-            location.href = "http://nms.iiitd.edu.in:9144/patientProfile/<%= patient.id %>/downloadCallog";
+            location.href = uri+"/patientProfile/<%= patient.id %>/downloadCallog";
         }
         function downloadAppUsageCSV(){
-            location.href = "http://nms.iiitd.edu.in:9144/patientProfile/<%= patient.id %>/downloadAppUsage";
+            location.href = uri+"/patientProfile/<%= patient.id %>/downloadAppUsage";
         }
         
         $(document).ready(function(){
@@ -239,14 +241,18 @@
             }
         })
         function setOption(){
-            if($('#setAlarmTime').val()!="" && $('#waitingTime').val()!="" && $('#steps').val()>=0){
+            if($('#setAlarmTime').val()!="" && $('#waitingTime').val()!="" && $('#steps').val() && $('#steps').val()>0){
                 var d = new Date();
                 var time = $('#setAlarmTime').val().split(" : ");
                 console.log(time);
                 if(time[2]=="PM")
-                    d.setHours(Number(time[0])+12);
-                else
+                    d.setHours(Number(time[0]+12));
+                else if(time[2]=="AM" && time[0]==12){
+                    d.setHours(0);
+                }
+                else{
                     d.setHours(Number(time[0]));
+                }
                 d.setMinutes(time[1]);
                 console.log(d);
                 //var urlParams = window.location.href.split("/");

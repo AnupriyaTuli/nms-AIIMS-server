@@ -80,7 +80,7 @@
                     	</div>
                         
                         <button class="sort btn btn-primary" data-sort="name">Sort by name</button>
-                        <button class="sort btn btn-primary" data-sort="username">Sort by Aiims Id</button>
+                        <button class="sort btn btn-primary" data-sort="aiimsId">Sort by Aiims Id</button>
                         <table class="table table-striped">
                             <thead>
                                 <tr>
@@ -101,6 +101,7 @@
                                         <td class="emailId"><%= currentPatients[i].emailId %></td>
                                         <!-- <td><button type="button" class="btn btn-info" id="addAlarm-<%= currentPatients[i].id %>" onclick="addAlarm('<%= currentPatients[i].id %>')">Set Alarm</button></td> -->
                                         <td><button type="button" class="btn btn-info" id="view-<%= currentPatients[i].id %>" onclick="patientProfile('<%= currentPatients[i].id %>')">View</button></td>
+                                        <td><button type="button" class="btn btn-warning" id="remove-<%= currentPatients[i].id %>" onclick="removePatient('<%= currentPatients[i].id %>')">Remove</button></td>
                                     </tr>
                                 <% } %>
                             </tbody>
@@ -111,14 +112,33 @@
         </div>
     </div>
     <script>
+        var uri = "http://nms.iiitd.edu.in:9144"
+        //var uri = "http://localhost:9144"
         function addAlarm(patId){
-            location.href = "http://nms.iiitd.edu.in:9144/addAlarm/"+patId;
+            location.href = uri+"/addAlarm/"+patId;
         }
         function patientProfile(patId){
-            location.href = "http://nms.iiitd.edu.in:9144/patientProfile/"+patId;
+            location.href = uri+"/patientProfile/"+patId;
         }
         function addPatient(){
-            location.href = "http://nms.iiitd.edu.in:9144/addPatient"; 
+            location.href = uri+"/addPatient"; 
+        }
+        function removePatient(patId){
+            $.post("/removePatient",
+                {
+                    patId: patId,
+                },
+                function(data, status){
+                    console.log(status);
+                    if(status=="success"){
+                        alert("Patient removed successfully.");
+                        location.reload();
+                    }
+                    else{
+                        alert("Error while adding patient.");
+                    }
+                });
+            //location.href = uri+"/removePatient/"+patId;
         }
         $(document).ready(function(){
             var options = {

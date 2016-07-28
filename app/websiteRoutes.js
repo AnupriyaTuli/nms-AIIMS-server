@@ -177,6 +177,16 @@ module.exports = function(app,passport){
 		  })
 	})
 
+	app.post("/removePatient", isLoggedIn, function(req, res){
+		console.log(req.body.patId);
+		removePatient(req.body.patId, req.user, function(err, result) {
+		    res.writeHead(200, {
+		      'Content-Type' : 'x-application/json'
+		    });
+		    res.end(result);
+		  })
+	})
+
 	app.get('/addDoctor',isLoggedIn, function(req,res){
 		res.render('signup.ejs',{message:req.flash('signupMessage')});
 	})
@@ -519,6 +529,32 @@ function addPatient(patId, doctor, callback){
 		      		callback(err,JSON.stringify({"response":"error"}));
 		      	} else {
 		      		console.log("Updated Doctor's patient list");
+		      		callback(null,JSON.stringify({"response":"success"}));
+		      	}
+	      	});
+		}
+		else{
+			callback(null,JSON.stringify({"response":"success"}));
+		}
+	})
+}
+
+function removePatient(patId, doctor, callback){
+	//console.log(doctor)
+	User.findOne({"_id":doctor.id}, function(err, doc){
+		//console.log(doc);
+		var temp = doc.patientAlloted;
+		var index = temp.indexOf(patId);
+		//console.log(temp);
+		if(index >= 0){
+			temp.splice(index, 1);
+			doc.patientAlloted = temp;
+			doc.save(function (err) {
+		      	if (err) {
+		      		console.log(err);
+		      		callback(err,JSON.stringify({"response":"error"}));
+		      	} else {
+		      		console.log("Updated Doctor's patient list, patient removed.");
 		      		callback(null,JSON.stringify({"response":"success"}));
 		      	}
 	      	});
