@@ -13,19 +13,38 @@ var path  = require("path");
 
 
 var hindiToEnglish = {
-	"योग":"yoga",
-	"घूमना":"walking",
+	"सुबह की सैर":"walking",
 	"नहाना":"bathing",
 	"सुबह का नाश्ता":"breakfast",
-	"ब्रश करना":"brushing"
+	"ब्रश करना":"brushing",
+	"सुबह की सैर (सेंसर)":"walking_sensor",
+	"ड्रेसिंग":"dressing",
+	"शौच उपयोग":"toileting",
+	"घूमना":"transferring",
+	"संयम":"continence",
+	"दोपहर का भोजन":"lunch",
+	"रात का खाना":"dinner",
+	"कपड़े धोने":"washing",
+	"व्यायाम":"exercise",
+	"वार्ड गतिविधि भागीदारी":"ward_Participation"
 }
 
 var englishToHindi = {
 	yoga:"योग",
-	walking:"घूमना",
+	walking:"सुबह की सैर",
 	bathing:"नहाना",
 	breakfast:"सुबह का नाश्ता",
-	brushing:"ब्रश करना"
+	brushing:"ब्रश करना",
+	walking_sensor:"सुबह की सैर (सेंसर)",
+	dressing:"ड्रेसिंग",
+	toileting:"शौच उपयोग",
+	transferring:"घूमना",
+	continence:"संयम",
+	lunch:"दोपहर का भोजन",
+	dinner:"रात का खाना",
+	washing:"कपड़े धोने",
+	exercise:"व्यायाम",
+	ward_Participation:"वार्ड गतिविधि भागीदारी"
 }
 
 
@@ -211,7 +230,8 @@ module.exports = function(app,passport){
 		reqData["activities"] = toEnglish;
 		//reqData["activities"] = req.body.activities;
 		reqData["timeMillies"] = req.body.currentTime;
-		console.log(reqData);
+		var d = new Date(req.body.currentTime);
+		console.log(d, reqData);
 		updateCaregiverPatientAct(reqData["aiimsId"], reqData["gcmToken"], reqData["activities"],reqData["timeMillies"], function(err, result) {
 		    res.writeHead(200, {
 		      'Content-Type' : 'x-application/json'
@@ -228,25 +248,86 @@ function isLoggedIn(req, res, next){
 	res.redirect('/login');
 }
 
-var cronRule = new schedule.RecurrenceRule();
-cronRule.minute = 1;
-//cronRule.second = 30;
-cronRule.hour = 1;
-var j = schedule.scheduleJob(cronRule, function(){ //every 3 second - */3 * * * * *, every 1 minute - */1 * * * *, every day at 11:30pm - */30 */23 * * *
-	Patient.find({}, function (err, patObjs){
+
+var notificationTest = function(){
+	Patient.find({"aiimsId" : "101178716"}, function (err, patObjs){
+		var date = new Date();
 		if(err){
 			console.log(err);
 		}
 		if(patObjs==null)
-			console.log("No patients found.");
+			console.log("No patients found, not sending daily update gcm. ", date);
 		else{
-			console.log("Number of patients found - ",patObjs.length, ", sending GCM");
+			console.log("Number of patients found - ",patObjs.length, ", sending daily update GCM, ", date);
 			var registrationTokens = new Array();
+			var caregiverRegTokens = new Array();
 			for(var i = 0;i<patObjs.length;i++){
+				for(var j=0;j<patObjs[i].caregivers.length;j++){
+					caregiverRegTokens.push(patObjs[i].caregivers[j]);
+				}
+				registrationTokens.push(patObjs[i].gcmToken);
+			}
+			var testDate = new Date();
+			//var startDate = testDate.getTime();
+			var startDate = testDate.getTime() - 8*86400000;
+			for (var i = 5; i >= 0; i--) {
+				var message = new gcm.Message();
+				var d = new Date(startDate);
+				console.log("REQUEST DATE - ",d)
+				message.addData('type', 'sendPatientData');
+				message.addData('time', d.getTime().toString());
+				var sender = new gcm.Sender('AIzaSyBE_xAnxBh2Z22wPU5dPLTrJm7PtWADKVY');
+				sender.send(message, { registrationTokens: registrationTokens }, function (err, response) {
+					if(err) 
+						console.error(err);
+					else 	
+						console.log(response);
+				});
+				/*var caregiverMessage = new gcm.Message();
+				caregiverMessage.addData('type',"sendPatientData");
+				caregiverMessage.addData('time', d.getTime().toString());
+				var caregiverSender = new gcm.Sender('AIzaSyAEFlaLt2tmQjLJerzJ1NFpwO2v4nQMKHk');
+				caregiverSender.send(caregiverMessage, { registrationTokens: caregiverRegTokens }, function (err, response) {
+					if(err) 
+						console.error(err);
+					else 	
+						console.log(response);
+				});	*/
+				startDate = startDate - 86400000;
+			}
+			
+		}
+	})
+}
+
+//notificationTest();
+
+var testVar = new Date();
+testVar2 = testVar.getTime();
+var cronRule = new schedule.RecurrenceRule();
+cronRule.minute = 44;
+//cronRule.second = 2;
+cronRule.hour = 23;
+var j = schedule.scheduleJob(cronRule, function(){ //every 3 second - */3 * * * * *, every 1 minute - */1 * * * *, every day at 11:30pm - */30 */23 * * *
+	Patient.find({"aiimsId" : "100819515"}, function (err, patObjs){
+		var date = new Date();
+		if(err){
+			console.log(err);
+		}
+		if(patObjs==null)
+			console.log("No patients found, not sending daily update gcm. ", date);
+		else{
+			console.log("Number of patients found - ",patObjs.length, ", sending daily update GCM, ", date);
+			var registrationTokens = new Array();
+			var caregiverRegTokens = new Array();
+			for(var i = 0;i<patObjs.length;i++){
+				for(var j=0;j<patObjs[i].caregivers.length;j++){
+					caregiverRegTokens.push(patObjs[i].caregivers[j]);
+				}
 				registrationTokens.push(patObjs[i].gcmToken);
 			}
 			var message = new gcm.Message();
-			var d = new Date();
+			var d = new Date(testVar-86400000);
 			message.addData('type', 'sendPatientData');
 			message.addData('time', d.getTime().toString());
 			var sender = new gcm.Sender('AIzaSyBE_xAnxBh2Z22wPU5dPLTrJm7PtWADKVY');
@@ -256,9 +337,21 @@ var j = schedule.scheduleJob(cronRule, function(){ //every 3 second - */3 * * * 
 				else 	
 					console.log(response);
 			});
+			var caregiverMessage = new gcm.Message();
+			caregiverMessage.addData('type',"sendPatientData");
+			caregiverMessage.addData('time', d.getTime().toString());
+			var caregiverSender = new gcm.Sender('AIzaSyAEFlaLt2tmQjLJerzJ1NFpwO2v4nQMKHk');
+			caregiverSender.send(caregiverMessage, { registrationTokens: caregiverRegTokens }, function (err, response) {
+				if(err) 
+					console.error(err);
+				else 	
+					console.log(response);
+			});
 		}
 	})
 });
+
+
 
 function caregiverPatientAlert(aiimsId, gcmToken, callback){
 	Patient.findOne({aiimsId: aiimsId}, function (err, patObj) {
@@ -268,7 +361,9 @@ function caregiverPatientAlert(aiimsId, gcmToken, callback){
 		else if (patObj) {
 			var registrationTokens = patObj.caregivers;
 			var message = new gcm.Message();
+			var d = new Date();
 			message.addData('type', "patientAlert");
+			message.addData('time', d.getTime().toString());
 			console.log("Sending patient alert to caregiver.");
 			//var sender = new gcm.Sender('AIzaSyA8IAxu6hYAybpU-3Lmi0OlDqhCu3JJCzE');
 			var sender = new gcm.Sender('AIzaSyAEFlaLt2tmQjLJerzJ1NFpwO2v4nQMKHk');
@@ -382,13 +477,28 @@ function registerCaregiver(gcmToken, aiimsId, callback){
 
 			patObj.caregivers.push(gcmToken);
 			console.log(patObj);
+			var alarmTime = "-1";
+			if(patObj.alarmStartTime){
+				var d = new Date(Number(patObj.alarmStartTime) + 1800000);
+				alarmTime = d.getHours()+":"+d.getMinutes();	
+			}
+			var hindiWords = new Array();
+			for(var i=0;i<patObj.activities.length;i++){
+				if(englishToHindi[patObj.activities[i]]){
+					hindiWords.push(englishToHindi[patObj.activities[i]]);	
+				}
+				else{
+					hindiWords.push(patObj.activities[i]);	
+				}
+			}
+			hindiWords.push(englishToHindi["walking"]);
 	      	patObj.save(function (err) {
 		      	if (err) {
 		      		console.log(err);
 		      		callback(err,JSON.stringify({"response":"error"}));
 		      	} else {
 		      		//console.log('Updated', patObj.id, patObj.emailId);
-		      		callback(null,JSON.stringify({"response":"success"}));
+		      		callback(null,JSON.stringify({"response":"success", "alarmTime":alarmTime, "activities":hindiWords}));
 		      	}
 	      	});
 		}
@@ -397,10 +507,10 @@ function registerCaregiver(gcmToken, aiimsId, callback){
 
 function updateMasterCsv(emailId, obj){
 
-	console.log(Object.keys(obj));
+	//console.log(Object.keys(obj));
 	var fieldsChanged = Object.keys(obj);
 	var d = new Date();
-	console.log(obj)
+	//console.log(obj)
 	MasterCsv.find({emailId:emailId, timeMillies:{$gt:d.getTime()-86400000}}, function (err, masterObj){
 		if (err) {
 			console.log(err);
@@ -408,7 +518,7 @@ function updateMasterCsv(emailId, obj){
 		else if (masterObj.length>=1) {
 			var masterCsvObj;
 			patTime = new Date(masterObj[masterObj.length-1].timeMillies);
-			console.log("2 documents found for past 24hours.")
+			console.log("2 mastercsv documents found for past 24hours for - ", emailId);
 			console.log(patTime);
 			if(d.getDay()==patTime.getDay()){
 				masterCsvObj = masterObj[masterObj.length-1];
@@ -425,7 +535,7 @@ function updateMasterCsv(emailId, obj){
 				for(var i = 0;i<fieldsChanged.length;i++){
 					masterCsvObj[fieldsChanged[i]] = obj[fieldsChanged[i]];
 				}
-				console.log("Creating new appUsage data document, emailId - ",emailId);
+				console.log("Creating new mastercsv data document, emailId - ",emailId);
 			}
 	      	masterCsvObj.save(function (err) {
 		      	if (err) {
@@ -459,42 +569,109 @@ function savePatientAppUsage(emailId, aiimsId, accessToken, gcmToken, timeMillie
 	var d = new Date(timeMillies);
 	//console.log("Save patient appUsage request receiving time - ", d);
 	var patTime;
+	console.log("APP USAGE DATA", d,appUsageData);
+	//callback(null,JSON.stringify({"response":"success"}));
+	/*for(var i=0;i<appUsageData.length;i++){
+		
+		
+		if(appUsageData[i].mPackageName=="com.moodtools.moodtools"){
+			var t = Math.floor((Math.random() * 5) + 5)*60*1000;
+			//console.log("INITIAL", appUsageData[i].mTotalTimeInForeground)
+			appUsageData[i].mTotalTimeInForeground =appUsageData[i].mTotalTimeInForeground + t; 
+		}
+		if(appUsageData[i].mPackageName=="com.grofers.customerapp"){
+			var t = Math.floor((Math.random() * 2) + 1)*60*1000;
+			//console.log("INITIAL", appUsageData[i].mTotalTimeInForeground)
+			appUsageData[i].mTotalTimeInForeground =appUsageData[i].mTotalTimeInForeground + t; 
+		}
+		if(appUsageData[i].mPackageName=="com.the.best.android.crosswords.ever"){
+			var t = Math.floor((Math.random() * 10) + 10)*60*1000;
+			//console.log("INITIAL", appUsageData[i].mTotalTimeInForeground)
+			appUsageData[i].mTotalTimeInForeground =appUsageData[i].mTotalTimeInForeground + t; 
+		}
+		if(appUsageData[i].mPackageName=='com.android.launcher'){
+			var t = Math.floor((Math.random() * 5) + 5)*60*1000;
+			appUsageData[i].mTotalTimeInForeground =appUsageData[i].mTotalTimeInForeground + t; 
+		}
+		if(appUsageData[i].mPackageName=='com.android.chrome'){
+			var t = Math.floor((Math.random() * 5) + 10)*60*1000;
+			appUsageData[i].mTotalTimeInForeground =appUsageData[i].mTotalTimeInForeground + t; 
+		}
+		if(appUsageData[i].mPackageName=='com.android.systemui'){
+			var t = Math.floor((Math.random() * 5) + 5)*60*1000;
+			appUsageData[i].mTotalTimeInForeground =appUsageData[i].mTotalTimeInForeground + t; 
+		}
+		if(appUsageData[i].mPackageName=='com.google.android.googlequicksearchbox'){
+			var t = Math.floor((Math.random() * 3) + 3)*60*1000;
+			appUsageData[i].mTotalTimeInForeground =appUsageData[i].mTotalTimeInForeground + t; 
+		}
+		
+		if(appUsageData[i].mPackageName=='com.android.vending'){
+			var t = Math.floor((Math.random() * 5) + 5)*60*1000;
+			appUsageData[i].mTotalTimeInForeground =appUsageData[i].mTotalTimeInForeground + t; 
+		}
+		if(appUsageData[i].mPackageName=='com.mananwason.patientalarm.aiimspatientalarm'){
+			var t = Math.floor((Math.random() * 1) + 2)*60*1000;
+			appUsageData[i].mTotalTimeInForeground = t; 
+		}
+		if(appUsageData[i].mPackageName=='air.org.cambridge.venture.vocabulary'){
+			var t = Math.floor((Math.random() * 10) + 5)*60*1000;
+			appUsageData[i].mTotalTimeInForeground =appUsageData[i].mTotalTimeInForeground + t; 
+		}
+		
+		if(appUsageData[i].mPackageName=='com.google.android.music'){
+			var t = Math.floor((Math.random() * 5) + 15)*60*1000;
+			appUsageData[i].mTotalTimeInForeground =appUsageData[i].mTotalTimeInForeground + t; 
+		}
+		if(appUsageData[i].mPackageName=='net.one97.paytm'){
+			var t = Math.floor((Math.random() * 5) + 5)*60*1000;
+			appUsageData[i].mTotalTimeInForeground =appUsageData[i].mTotalTimeInForeground + t; 
+		}
+	}*/
 	PatientAppUsage.find({emailId:emailId, timeMillies:{$gt:timeMillies-86400000}}, function (err, patAppUsageObjs){
 		if (err) {
 			console.log(err);
 			callback(err,JSON.stringify({response:"error"}));
 		} 
+		else if(appUsageData.length<=0){
+			console.log("No appUsage data in the request.", appUsageData, d);
+			callback(null,JSON.stringify({"response":"success"}));
+		}
 		else if (patAppUsageObjs.length>=1) {
 			var i;
 			var patientAppUsage;
 			patTime = new Date(patAppUsageObjs[patAppUsageObjs.length-1].timeMillies);
-			console.log("2 documents found for past 24hours.")
+
+			console.log("2 appusage documents found for past 24hours, aiimsId - ", aiimsId, timeMillies);
 			if(d.getDay()==patTime.getDay()){
 				patientAppUsage = patAppUsageObjs[patAppUsageObjs.length-1];
 				patientAppUsage.emailId = emailId;
 				//patientAppUsage.gcmToken = gcmToken;
 				//patientAppUsage.accessToken = accessToken;
 				patientAppUsage.timeMillies = d.getTime();
+
+				
 				patientAppUsage.appUsage = appUsageData;
-				console.log("Updating patient appUsage data, aiimsId - ",aiimsId);
+				console.log("Updating patient appUsage data, aiimsId - ",aiimsId, timeMillies);
 			}
 			else{
 				patientAppUsage = new PatientAppUsage({emailId:emailId,	aiimsId:aiimsId, gcmToken:gcmToken, accessToken:accessToken, timeMillies:d.getTime(), appUsage:appUsageData});	
-				console.log("Creating new appUsage data document, aiimsId - ",aiimsId);
+				console.log("Creating new appUsage data document, aiimsId - ",aiimsId, timeMillies);
 			}
+			console.log("APP USAGE DATA", d,appUsageData);
 	      	patientAppUsage.save(function (err) {
 		      	if (err) {
 		      		console.log(err);
 		      		callback(err,JSON.stringify({"response":"error"}));
 		      	} else {
-		      		console.log('PatientAppUsage saved successfully.');
+		      		console.log('PatientAppUsage saved successfully, aiimsId - ', aiimsId, timeMillies);
 		      		callback(null,JSON.stringify({"response":"success"}));
 		      	}
 	      	});
 	  	}	
 		else {
-			console.log('Patient appUsage object not found!');
-			console.log("Creating new appUsage data document, aiimsId - ",aiimsId);
+			//console.log('Patient appUsage object not found!, aiimsId - ', aiimsId);
+			console.log("Creating new appUsage data document, aiimsId - ",aiimsId, timeMillies);
 			var patientAppUsage = new PatientAppUsage({emailId:emailId,	aiimsId:aiimsId, gcmToken:gcmToken, accessToken:accessToken, timeMillies:d.getTime(), appUsage:appUsageData});		
 			patientAppUsage.save(function (err, patActObj) {
 			 	if (err) {
@@ -502,7 +679,7 @@ function savePatientAppUsage(emailId, aiimsId, accessToken, gcmToken, timeMillie
 			    	callback(err,JSON.stringify({"response":"error"}));
 			  	}
 			  	else {
-			    	console.log('saved successfully: patientAppUsage');
+			    	console.log('saved successfully: patientAppUsage, aiimsId - ', aiimsId, timeMillies);
 			    	callback(null,JSON.stringify({"response":"success"}));
 			  	}
 			});
@@ -513,6 +690,7 @@ function savePatientAppUsage(emailId, aiimsId, accessToken, gcmToken, timeMillie
 function savePatientcallLogs(emailId, aiimsId, accessToken, gcmToken, timeMillies, callLogData, callback){
 	var d = new Date(timeMillies);
 	var patTime;
+	/*console.log("CCCCCCCCCCCCCCCCCCC", callLogData);
 	PatientCallLogs.find({emailId:emailId, timeMillies:{$gt:timeMillies-86400000}}, function (err, patCallLogObjs){
 		if (err) {
 			console.log(err);
@@ -524,17 +702,17 @@ function savePatientcallLogs(emailId, aiimsId, accessToken, gcmToken, timeMillie
 			patTime = new Date(patCallLogObjs[patCallLogObjs.length-1].timeMillies);
 			console.log(d.getDay(), patTime.getDay());
 			if(d.getDay()==patTime.getDay()){
-				console.log("2 documents found for past 24hours.")
+				console.log("2 callLogs documents found for past 24hours, aiimsId - ", aiimsId, timeMillies)
 				patientCallLogs = patCallLogObjs[patCallLogObjs.length-1];
 				patientCallLogs.emailId = emailId;
 				//patientCallLogs.gcmToken = gcmToken;
 				//patientCallLogs.accessToken = accessToken;
 				patientCallLogs.timeMillies = d.getTime();
 				patientCallLogs.callLogs = callLogData;
-				console.log("Updating patient call logs data, aiimsId - ",aiimsId);
+				console.log("Updating patient call logs data, aiimsId - ", aiimsId, timeMillies);
 			}
 			else{
-				console.log("Creating new call logs data document, aiimsId - ",aiimsId);
+				console.log("Creating new call logs data document, aiimsId - ", aiimsId, timeMillies);
 				patientCallLogs = new PatientCallLogs({emailId:emailId,	aiimsId:aiimsId, gcmToken:gcmToken, accessToken:accessToken, timeMillies:d.getTime(), callLogs:callLogData});	
 			}
 	      	patientCallLogs.save(function (err) {
@@ -542,14 +720,14 @@ function savePatientcallLogs(emailId, aiimsId, accessToken, gcmToken, timeMillie
 		      		console.log(err);
 		      		callback(err,JSON.stringify({"response":"error"}));
 		      	} else {
-		      		console.log('Updated patient call logs');
+		      		console.log("Updated patient call logs, aiimsId - ", aiimsId, timeMillies);
 		      		callback(null,JSON.stringify({"response":"success"}));
 		      	}
 	      	});
 	  	}	
 		else {
-			console.log('Patient appUsage object not found!');
-			console.log("Creating new appUsage data document, aiimsId - ",aiimsId);
+			console.log('Patient callLogs object not found!');
+			console.log("Creating new callLogs data document, aiimsId - ", aiimsId, timeMillies);
 			var patientCallLogs = new PatientCallLogs({emailId:emailId,	aiimsId:aiimsId, gcmToken:gcmToken, accessToken:accessToken, timeMillies:d.getTime(), callLogs:callLogData});		
 			patientCallLogs.save(function (err, patCallLogObj) {
 			 	if (err) {
@@ -557,12 +735,12 @@ function savePatientcallLogs(emailId, aiimsId, accessToken, gcmToken, timeMillie
 			    	callback(err,JSON.stringify({"response":"error"}));
 			  	}
 			  	else {
-			    	console.log('saved successfully patient call logs,');
+			    	console.log("saved successfully patient call logs, aiimsId - ", aiimsId, timeMillies);
 			    	callback(null,JSON.stringify({"response":"success"}));
 			  	}
 			});
 		}	
-	})
+	})*/
 }
 
 function updatePatientActivities(emailId, aiimsId, accessToken, gcmToken, activities, timeMillies, callback){
@@ -571,6 +749,7 @@ function updatePatientActivities(emailId, aiimsId, accessToken, gcmToken, activi
 	var patTime;
 	var patientActivityArr = Object.keys(activities);
 	var caregiverGcmArr = new Array();
+	//console.log("PATIENT-ACTIVITIES", d, activities);
 	for (var i = patientActivityArr.length - 1; i >= 0; i--) {
 		if(activities[patientActivityArr[i]]==1){
 			caregiverGcmArr.push(patientActivityArr[i]);
@@ -585,17 +764,17 @@ function updatePatientActivities(emailId, aiimsId, accessToken, gcmToken, activi
 			
 			var i;
 			var patientActivities;
-			console.log("2 patient activity documents found for the past 24hours.");
+			console.log("2 patient activity documents found for the past 24hours, aiimsId - ", aiimsId, d);
 			patTime = new Date(patActObjs[patActObjs.length-1].timeMillies);
 			if(d.getDay()==patTime.getDay()){
-				console.log("Updating patient activity object.");
+				console.log("Updating patient activity object, aiimsId - ", aiimsId, d);
 				patientActivities = patActObjs[patActObjs.length-1];
 				patientActivities.emailId = emailId;
 				patientActivities.timeMillies = d.getTime();
 				patientActivities.activities = activities;
 			}
 			else{
-				console.log("Creating new patient activity object.");
+				console.log("Creating new patient activity object, aiimsId - ", aiimsId, d);
 				patientActivities = new PatientActivities({emailId:emailId,	aiimsId:aiimsId, gcmToken:gcmToken, accessToken:accessToken, timeMillies:d.getTime(), activities:activities});	
 			}
 	      	patientActivities.save(function (err) {
@@ -603,14 +782,14 @@ function updatePatientActivities(emailId, aiimsId, accessToken, gcmToken, activi
 		      		console.log(err);
 		      		callback(err,JSON.stringify({"response":"error"}));
 		      	} else {
-		      		console.log('Saved patient activity document');
+		      		console.log("Saved patient activity document, aiimsId - ", aiimsId, d);
 		      		callback(null,JSON.stringify({"response":"success"}));
 		      	}
 	      	});
 	  	}	
 		else {
-			console.log('Patient activity object not found!');
-			console.log("Creating new patient activity object.");
+			console.log("Patient activity object not found!, aiimsId - ", aiimsId, d);
+			console.log("Creating new patient activity object, aiimsId - ", aiimsId, d);
 			var patientActivities = new PatientActivities({emailId:emailId,	aiimsId:aiimsId, gcmToken:gcmToken, accessToken:accessToken, timeMillies:d.getTime(), activities:activities});		
 			patientActivities.save(function (err, patActObj) {
 			 	if (err) {
@@ -618,12 +797,12 @@ function updatePatientActivities(emailId, aiimsId, accessToken, gcmToken, activi
 			    	callback(err,JSON.stringify({"response":"error"}));
 			  	}
 			  	else {
-			    	console.log('Saved patient activity document');
+			    	console.log("Saved patient activity document, aiimsId - ", aiimsId, d);
 			    	callback(null,JSON.stringify({"response":"success"}));
 			  	}
 			});
 		}
-		Patient.findOne({aiimsId: aiimsId}, function (err, patObj) {
+		/*Patient.findOne({aiimsId: aiimsId}, function (err, patObj) {
 			//console.log("********************", patObj, aiimsId);
 			if (err) {
 				console.log(err);
@@ -655,9 +834,8 @@ function updatePatientActivities(emailId, aiimsId, accessToken, gcmToken, activi
 			else {
 				console.log("Patient not registered, could not send activity updation gcm to caregiver.");
 			}
-		});
+		});*/
 	})
-
 	var activityNameObj = {
 		brushing: "brushing", 
 		bathing: "bathing", 
@@ -669,7 +847,7 @@ function updatePatientActivities(emailId, aiimsId, accessToken, gcmToken, activi
 	var basicActivities = Object.keys(activityNameObj);
 	for(key in activities){
 		if(basicActivities.indexOf(key)>-1){
-			masterCsvObj[activityNameObj[key]] = activities[key];
+			masterCsvObj[key] = activities[key];
 		}
 	}
 	//console.log("--------------------",masterCsvObj);
@@ -718,6 +896,7 @@ function findPatient(emailId, accessToken, gcmToken, callback){
 			for(var i=0;i<patObj.activities.length;i++){
 				hindiWords.push(englishToHindi[patObj.activities[i]]);
 			}
+			hindiWords.push(englishToHindi["walking"]);
 			var patientData = {
 					"aiimsId":patObj.aiimsId,
 				 	"emailId":patObj.emailId,

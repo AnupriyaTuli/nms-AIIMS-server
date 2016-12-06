@@ -11,11 +11,20 @@ var fs = require('fs');
 var schedule = require('node-schedule');
 
 var englishToHindi = {
-	yoga:"योग",
-	walking:"घूमना",
+	walking:"सुबह की सैर",
 	bathing:"नहाना",
 	breakfast:"सुबह का नाश्ता",
-	brushing:"ब्रश करना"
+	brushing:"ब्रश करना",
+	walking_sensor:"सुबह की सैर (सेंसर)",
+	dressing:"ड्रेसिंग",
+	toileting:"शौच उपयोग",
+	transferring:"घूमना",
+	continence:"संयम",
+	lunch:"दोपहर का भोजन",
+	dinner:"रात का खाना",
+	washing:"कपड़े धोने",
+	exercise:"व्यायाम",
+	ward_Participation:"वार्ड गतिविधि भागीदारी"
 }
 
 module.exports = function(app,passport){
@@ -168,7 +177,7 @@ module.exports = function(app,passport){
 	})
 
 	app.post("/addPatient", isLoggedIn, function(req, res){
-		console.log(req.body.patId);
+		//console.log(req.body.patId);
 		addPatient(req.body.patId, req.user, function(err, result) {
 		    res.writeHead(200, {
 		      'Content-Type' : 'x-application/json'
@@ -178,7 +187,7 @@ module.exports = function(app,passport){
 	})
 
 	app.post("/removePatient", isLoggedIn, function(req, res){
-		console.log(req.body.patId);
+		//console.log(req.body.patId);
 		removePatient(req.body.patId, req.user, function(err, result) {
 		    res.writeHead(200, {
 		      'Content-Type' : 'x-application/json'
@@ -215,6 +224,7 @@ function isLoggedIn(req, res, next){
 
 
 function setPatientActivities(patId, activities, callback){
+	var date = new Date();
 	Patient.findOne({ "_id": patId }, function (err, patObj){
 		if(err){
 			console.log(err);
@@ -223,22 +233,40 @@ function setPatientActivities(patId, activities, callback){
 		if(patObj==null)
 			callback(null, JSON.stringify({response:"error"}));
 		else{
-			console.log("Setting patient activities.");
+			//console.log("Setting patient activities.");
 			patObj.activities = activities;
 
 			var registrationTokens = new Array();
 			registrationTokens.push(patObj.gcmToken);
 			var message = new gcm.Message();
-			console.log("Activities updated: ", activities , " sending notification.");
+			console.log("Activities updated: ", activities , " sending notification to aiimsId - ", patObj.aiimsId, ", time - ", date);
 			var hindiWords = [];
 			for(var i=0;i<activities.length;i++){
-				hindiWords.push(englishToHindi[activities[i]]);
+				if(englishToHindi[activities[i]]){
+					hindiWords.push(englishToHindi[activities[i]]);	
+				}
+				else{
+					hindiWords.push(activities[i]);
+				}
 			}
 			//for(var i=0;)
+			hindiWords.push(englishToHindi["walking"]);
 			message.addData('activities', hindiWords.join(":"));
 			message.addData('type', 'activities');
 			var sender = new gcm.Sender('AIzaSyBE_xAnxBh2Z22wPU5dPLTrJm7PtWADKVY');
 			sender.send(message, { registrationTokens: registrationTokens }, function (err, response) {
+				if(err) 
+					console.error(err);
+				else 	
+					console.log(response);
+			});
+			var caregiverMessage = new gcm.Message();
+			
+			caregiverMessage.addData('activities', hindiWords.join(":"));
+			caregiverMessage.addData('type', 'patientActivities');
+			var caregiverSender = new gcm.Sender('AIzaSyAEFlaLt2tmQjLJerzJ1NFpwO2v4nQMKHk');
+			var caregiverRegTokens = patObj.caregivers;
+			caregiverSender.send(caregiverMessage, { registrationTokens: caregiverRegTokens }, function (err, response) {
 				if(err) 
 					console.error(err);
 				else 	
@@ -251,7 +279,7 @@ function setPatientActivities(patId, activities, callback){
 			    	callback(err,JSON.stringify({"response":"error"}));
 			  	}
 			  	else {
-			  		console.log("-------------------",patObj2.activities);
+			  		console.log("Activities updated - ", patObj2.activities, "aiimsId - ",patObj2.aiimsId, ", time - ", date);
 			    	callback(null,JSON.stringify({"response":"success"}));
 			  	}
 			});
@@ -331,12 +359,13 @@ function sendAppUsageCSV(patId, callback){
 				else if(appUsageObjs.length<=0)
 					callback(null,null);
 				else{
-					//console.log(appUsageObjs);
+					//console.log("appUsage objects - ", appUsageObjs.length);
 					var appUsageData = new Array();
 					var fields = ['emailId', 'aiimsId', 'time', 'mPackageName', 'mLaunchCount', 'mTotalTimeInForeground',];
 					var fieldNames = ['EmailId', 'AiimsId', 'Date of Record', 'Name of Application', 'Number of Launches', 'Total Time Used']
 					for (var i = 0 ; i < appUsageObjs.length; i++) {
 						var temp = appUsageObjs[i].appUsage;
+						//console.log(appUsageObjs[i].appUsage);
 						var d = new Date(Number(appUsageObjs[i].timeMillies));
 						//console.log("@@@@@@@@@",d);
 						for(var j=0;j<temp.length;j++){
@@ -346,7 +375,7 @@ function sendAppUsageCSV(patId, callback){
 						  	appUsageData.push(temp[j]);
 						}
 					};
-					console.log(appUsageData);
+					//console.log(appUsageData);
 					json2csv({ data: appUsageData, fields: fields , fieldNames:fieldNames }, function(err, csv) {
 						if (err){
 							console.log(err);
@@ -379,7 +408,7 @@ function updateMasterCsv(emailId, obj){
 		else if (masterObj.length>=1) {
 			var masterCsvObj;
 			patTime = new Date(masterObj[masterObj.length-1].timeMillies);
-			console.log("2 documents found for past 24hours.")
+			console.log("2 mastercsv documents found for past 24hours.")
 			if(d.getDay()==patTime.getDay()){
 				masterCsvObj = masterObj[masterObj.length-1];
 				masterCsvObj.emailId = emailId;
@@ -395,7 +424,7 @@ function updateMasterCsv(emailId, obj){
 				for(var i = 0;i<fieldsChanged.length;i++){
 					masterCsvObj[fieldsChanged[i]] = obj[fieldsChanged[i]];
 				}
-				console.log("Creating new appUsage data document, emailId - ",emailId);
+				console.log("Creating new masterCsv data document, emailId - ",emailId);
 			}
 	      	masterCsvObj.save(function (err) {
 		      	if (err) {
@@ -417,7 +446,7 @@ function updateMasterCsv(emailId, obj){
 			    	console.log(err);
 			  	}
 			  	else {
-			    	console.log('saved successfully: masterCsvObj');
+			    	console.log('saved successfully: masterCsvObj', emailId);
 			  	}
 			});
 		}	
@@ -451,12 +480,12 @@ function setPatientAlarm(patId, alarmTime, numberOfSteps, stepsWaitingTime, call
 			    	callback(err,JSON.stringify({"response":"error"}));
 			  	}
 			  	else {
-			    	console.log('saved successfully patient data after setting alarm. ');
+			    	console.log('saved successfully patient data after setting alarm, aiimsId - ', patObj.aiimsId, ", time - ",temp);
 			    	var registrationTokens = new Array();
 			    	registrationTokens.push(patObj2.gcmToken);
 			    	var message = new gcm.Message();
 			    	var d = new Date(Number(patObj2.alarmStartTime));
-			    	console.log("Alarm start time updated: ", d.getHours()+":"+d.getMinutes(), "sending notification.");
+			    	console.log("Alarm start time updated: ", d.getHours()+":"+d.getMinutes(), "sending notification to aiimsId - ", patObj.aiimsId, ", time - ",temp);
 			    	message.addData('alarmStartTime', d.getHours()+":"+d.getMinutes());
 			    	message.addData('numberOfSteps', patObj2.numberOfSteps);
 			    	message.addData('stepsWaitingTime', patObj2.stepsWaitingTime);
@@ -473,14 +502,16 @@ function setPatientAlarm(patId, alarmTime, numberOfSteps, stepsWaitingTime, call
 			    	});
 
 			    	var careGiverGcm = new gcm.Message();
-			    	var careGiverAlarmTime = new Date(d.getTime() - 600000);
+			    	var careGiverAlarmTime = new Date(d.getTime() + 1800000);
+			    	//var careGiverAlarmTime = new Date(d.getTime());
 			    	var registrationTokens2 = patObj2.caregivers;
-			    	console.log("Alarm start time for caregiver: ", careGiverAlarmTime.getHours()+":"+careGiverAlarmTime.getMinutes(), "sending notification.");
-			    	careGiverGcm.addData('alarmStartTime', careGiverAlarmTime.getHours()+":"+careGiverAlarmTime.getMinutes());
+			    	console.log("Alarm start time for caregiver: ", careGiverAlarmTime.getHours()+":"+careGiverAlarmTime.getMinutes(), "sending notification, aiimsId - ", patObj.aiimsId, ", time - ",temp);
+			    	careGiverGcm.addData('alarm', careGiverAlarmTime.getHours()+":"+careGiverAlarmTime.getMinutes());
+			    	careGiverGcm.addData('type', "alarmTime");
 			    	/*careGiverGcm.addNotification('title', 'Alarm time updated.');
 			    	careGiverGcm.addNotification('icon', 'ic_launcher');
-			    	careGiverGcm.addNotification('body', '');*/							
-			    	var sender2 = new gcm.Sender('AIzaSyA8IAxu6hYAybpU-3Lmi0OlDqhCu3JJCzE');
+			    	careGiverGcm.addNotification('body', '');*/				
+			    	var sender2 = new gcm.Sender('AIzaSyAEFlaLt2tmQjLJerzJ1NFpwO2v4nQMKHk');
 			    	sender2.send(careGiverGcm, { registrationTokens: registrationTokens2 }, function (err, response) {
 			    		if(err) 
 			    			console.error(err);
@@ -516,10 +547,11 @@ function getAllDoctors(admin, callback){
 
 function addPatient(patId, doctor, callback){
 	//console.log(doctor)
+	var date = new Date();
 	User.findOne({"_id":doctor.id}, function(err, doc){
 		//console.log(doc);
 		var temp = doc.patientAlloted;
-		console.log(temp);
+		//console.log(temp);
 		if(temp.indexOf(patId) < 0){
 			temp.push(patId);
 			doc.patientAlloted = temp;
@@ -528,7 +560,7 @@ function addPatient(patId, doctor, callback){
 		      		console.log(err);
 		      		callback(err,JSON.stringify({"response":"error"}));
 		      	} else {
-		      		console.log("Updated Doctor's patient list");
+		      		console.log("Updated Doctor's patient list, patient added. Doc Id - ", doc.local.username, ", patient Id - ", patId, ", time - ", date);
 		      		callback(null,JSON.stringify({"response":"success"}));
 		      	}
 	      	});
@@ -541,6 +573,7 @@ function addPatient(patId, doctor, callback){
 
 function removePatient(patId, doctor, callback){
 	//console.log(doctor)
+	var date = new Date();
 	User.findOne({"_id":doctor.id}, function(err, doc){
 		//console.log(doc);
 		var temp = doc.patientAlloted;
@@ -554,7 +587,7 @@ function removePatient(patId, doctor, callback){
 		      		console.log(err);
 		      		callback(err,JSON.stringify({"response":"error"}));
 		      	} else {
-		      		console.log("Updated Doctor's patient list, patient removed.");
+		      		console.log("Updated Doctor's patient list, patient removed. Doc Id - ", doc.local.username, ", patient Id - ", patId, ", time - ", date);
 		      		callback(null,JSON.stringify({"response":"success"}));
 		      	}
 	      	});
@@ -566,9 +599,9 @@ function removePatient(patId, doctor, callback){
 }	
 
 function getPatients(doctor, callback){
-	console.log(doctor.patientAlloted);
+	//console.log(doctor.patientAlloted);
 	Patient.find({ "_id": { "$nin": doctor.patientAlloted } }, function (err, patObjs){
-		console.log(patObjs);
+		//console.log(patObjs);
 		if(patObjs!=null)
 			callback(null, patObjs);
 		else

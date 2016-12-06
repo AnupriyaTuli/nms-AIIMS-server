@@ -142,7 +142,7 @@
                             <input type="number" id = "steps"/>
                         </div>
                         <div class="col-md-4">
-                            <h3>Steps waiting time</h3>
+                            <h3>Steps waiting time (hh:mm)</h3>
                             <input type="text" id = "waitingTime"/>
                         </div>
                         
@@ -229,7 +229,8 @@
         }
         $('#tokenfield').tokenfield({
           autocomplete: {
-            source: ['brushing','bathing','breakfast','walking','yoga'],
+            
+            source: ['brushing','bathing','breakfast','yoga', "dressing","toileting","transferring","continence","lunch","dinner","washing","exercise","ward_Participation"],
             delay: 50
           },
           showAutocompleteOnFocus: true
@@ -245,8 +246,10 @@
                 var d = new Date();
                 var time = $('#setAlarmTime').val().split(" : ");
                 console.log(time);
-                if(time[2]=="PM")
-                    d.setHours(Number(time[0]+12));
+                if(time[2]=="PM"){
+                    console.log(Number(time[0])+12)
+                    d.setHours(Number(time[0])+12);
+                }
                 else if(time[2]=="AM" && time[0]==12){
                     d.setHours(0);
                 }
