@@ -13,6 +13,9 @@ var patientSchema = mongoose.Schema({
 	stepsWaitingTime:String,	//in seconds
 	allotedDoctors:[String],
 	activities:[String],
-	caregivers:[String]
+	caregivers:[String],
+	lastAppUsageTime:Number,
+	lastCallLogsTime:Number,
+	lastActivitiesTime:Number
 });
 module.exports = mongoose.model("patient",patientSchema);

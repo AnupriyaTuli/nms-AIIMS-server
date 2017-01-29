@@ -119,11 +119,12 @@ module.exports = function(app,passport){
 		reqData["accessToken"] = req.body.userInfo.access_token;
 		reqData["gcmToken"] = req.body.userInfo.gcm_token;
 		//reqData["activities"] = req.body.activities;
-		reqData["timeMillies"] = req.body.currentTime;
+		//reqData["timeMillies"] = req.body.currentTime;
 		reqData["usageStats"] = req.body.customUsageStats;
+		reqData["lastTime"] = req.body.latestData;
 		//reqData["usageStats"].splice(4,160);
 		//console.log(reqData["usageStats"]);
-		savePatientAppUsage( reqData["emailId"], reqData["aiimsId"], reqData["accessToken"], reqData["gcmToken"],reqData["timeMillies"], reqData["usageStats"], function(err, result) {
+		savePatientAppUsage( reqData["emailId"], reqData["aiimsId"], reqData["accessToken"], reqData["gcmToken"], reqData["usageStats"], reqData["lastTime"], function(err, result) {
 		    res.writeHead(200, {
 		      'Content-Type' : 'x-application/json'
 		    });
@@ -141,14 +142,18 @@ module.exports = function(app,passport){
 		reqData["timeMillies"] = req.body.currentTime;
 		//var basicActivities = Object.keys(req.body.activities);
 		var toEnglish = {};
-		for(key in req.body.activities){
-			if(hindiToEnglish[key]){
-				toEnglish[hindiToEnglish[key]] = req.body.activities[key];	
-			}
-			else{
-				toEnglish[key] = req.body.activities[key];		
-			}
+		var eachDayActvities = req.body.eachDayActvities;
+		for (var i = 0; i < eachDayActvities.length; i++) {
+			for(key in req.body.activities){		//currentTime, activities
+				if(hindiToEnglish[key]){
+					toEnglish[hindiToEnglish[key]] = req.body.activities[key];	
+				}
+				else{
+					toEnglish[key] = req.body.activities[key];		
+				}
+			}	
 		}
+		
 		reqData["activities"] = toEnglish;
 		//console.log("&&&&&&&&&&&",reqData);
 		updatePatientActivities( reqData["emailId"], reqData["aiimsId"], reqData["accessToken"], reqData["gcmToken"], reqData["activities"],reqData["timeMillies"], function(err, result) {
@@ -166,10 +171,10 @@ module.exports = function(app,passport){
 		reqData["accessToken"] = req.body.userInfo.access_token;
 		reqData["gcmToken"] = req.body.userInfo.gcm_token;
 		//reqData["activities"] = req.body.activities;
-		reqData["timeMillies"] = req.body.currentTime;
-		reqData["callLogData"] = req.body.callLogData;
+		//reqData["timeMillies"] = req.body.currentTime;
+		reqData["callLogData"] = req.body.eachDayCallLog;
 		//console.log(reqData);
-		savePatientcallLogs( reqData["emailId"], reqData["aiimsId"], reqData["accessToken"], reqData["gcmToken"],reqData["timeMillies"], reqData["callLogData"], function(err, result) {
+		savePatientcallLogs( reqData["emailId"], reqData["aiimsId"], reqData["accessToken"], reqData["gcmToken"], reqData["callLogData"], function(err, result) {
 		    res.writeHead(200, {
 		      'Content-Type' : 'x-application/json'
 		    });
@@ -177,6 +182,17 @@ module.exports = function(app,passport){
 		  });
 	})
 
+	app.post("/api/app/patient/dataDates", function(req, res){
+		var reqData = new Array();
+		var aiimsId = req.body.aiimsId;
+
+		sendLastDataDates(aiimsId, function(err, result) {
+		    res.writeHead(200, {
+		      'Content-Type' : 'x-application/json'
+		    });
+		    res.end(result);
+		  });
+	})
 
 	app.post("/api/app/register", function(req, res){
 		var reqData = new Array();
@@ -246,6 +262,63 @@ function isLoggedIn(req, res, next){
 		return next();
 	}
 	res.redirect('/login');
+}
+
+var sendLastDataDates = function(aiimsId, callback){
+	Patient.findOne({aiimsId: aiimsId}, function (err, patObj) {
+		if (err) {
+			console.log(err);
+			callback(null,JSON.stringify({"response":"error"}));
+		}
+		else if (patObj) {
+			callback(null,JSON.stringify({"response":"success", "callLogsDate":patObj.lastCallLogsTime, "dailyActivitiesDate":patObj.lastActivitiesTime, "appsUsageDate":patObj.lastAppUsageTime}));
+		}	
+		else {
+			callback(null,JSON.stringify({"response":"error"}));
+			console.log("Patient not registered, could not send last data dates.");
+		}
+	});
+}
+
+var getLastAppUTime = function(){
+	/*DeviceData.find({timeStamp:{"$gte": startTime}, location:location, deviceId:deviceId},	//all three should match
+		null, // Columns to Return
+		{
+		    sort:{
+		        timeStamp: 1 //Sort by Date Added DESC
+		    }
+		},
+		function(err,data){
+			var returnObj = {
+				pm:new Array(),
+				ozone:new Array(),
+				nitDioxide:new Array(),
+				carbonMono:new Array(),
+				aqi:new Array()
+			}
+			var pm, ozone, nitDioxide, carbonMono, aqi, count;
+			pm=ozone=nitDioxide=carbonMono=aqi=count=0;
+			var currentTime = startTime.getTime();
+			for (var i = 0; i < data.length; i++) {
+				while(data.timeStamp.getTime() <= currentTime+step){
+					pm+=data[i].pm;
+					ozone+=data[i].ozone;
+					nitDioxide+=data[i].nitDioxide;
+					carbonMono+=data[i].carbonMono;
+					aqi+=data[i].aqi;
+					count++;
+				}
+				returnObj.pm.push(pm/count);
+				returnObj.ozone.push(ozone/count);
+				returnObj.nitDioxide.push(nitDioxide/count);
+				returnObj.carbonMono.push(carbonMono/count);
+				returnObj.aqi.push(aqi/count);
+				currentTime+=step;
+				pm=ozone=nitDioxide=carbonMono=aqi=count=0;
+			};
+			callback(JSON.stringify({"gasData":returnObj}));
+		}
+	)*/
 }
 
 
@@ -327,7 +400,8 @@ var j = schedule.scheduleJob(cronRule, function(){ //every 3 second - */3 * * * 
 				registrationTokens.push(patObjs[i].gcmToken);
 			}
 			var message = new gcm.Message();
-			var d = new Date(testVar-86400000);
+			//var d = new Date(testVar-86400000);
+			var d = new Date();
 			message.addData('type', 'sendPatientData');
 			message.addData('time', d.getTime().toString());
 			var sender = new gcm.Sender('AIzaSyBE_xAnxBh2Z22wPU5dPLTrJm7PtWADKVY');
@@ -337,7 +411,7 @@ var j = schedule.scheduleJob(cronRule, function(){ //every 3 second - */3 * * * 
 				else 	
 					console.log(response);
 			});
-			var caregiverMessage = new gcm.Message();
+			/*var caregiverMessage = new gcm.Message();
 			caregiverMessage.addData('type',"sendPatientData");
 			caregiverMessage.addData('time', d.getTime().toString());
 			var caregiverSender = new gcm.Sender('AIzaSyAEFlaLt2tmQjLJerzJ1NFpwO2v4nQMKHk');
@@ -346,7 +420,7 @@ var j = schedule.scheduleJob(cronRule, function(){ //every 3 second - */3 * * * 
 					console.error(err);
 				else 	
 					console.log(response);
-			});
+			});*/
 		}
 	})
 });
@@ -383,32 +457,22 @@ function caregiverPatientAlert(aiimsId, gcmToken, callback){
 function updateCaregiverPatientAct(aiimsId, gcmToken, activities,timeMillies,callback){
 	var d = new Date(timeMillies);
 	var patTime;
-	Patient.findOne({"aiimsId":aiimsId}, function (err, patObj){
-		if(err){
-			console.log("masterCsv not updated.", err);
-		}
-		if(patObj==null){
-			console.log("Patient not found for the given aiimsId, masterCsv not updated.");
-		}
-			
-		else{
-			var activityNameObj = {
-				brushing: "caregiverResBrushing",
-				bathing: "caregiverResBathing",
-				breakfast: "caregiverResBreakfast",
-				walking: "caregiverResWalking", 
-				yoga: "caregiverResYoga"
-			}
-			var masterCsvObj = {};
-			var basicActivities = Object.keys(activityNameObj);
-			for(key in activities){
-				if(basicActivities.indexOf(key)>-1){
-					masterCsvObj[activityNameObj[key]] = activities[key];
-				}
-			}
-			updateMasterCsv(patObj.emailId, masterCsvObj);
-		}
-	})
+	
+	var caregiverActBatch = new Array();
+	for (var i = 0; i < activitiesData.length; i++) {
+		var patientActivities = new CaregiverPatActivities({aiimsId:aiimsId, gcmToken:gcmToken, timeMillies:activitiesData[i].timeStmp, activities:activitiesData[i].data});
+		caregiverActBatch.push(patientActivities)
+	}
+
+	CaregiverPatActivities.collection.insert(caregiverActBatch, onInsert);
+
+	function onInsert(err, docs) {
+	    if (err) {
+	    	console.log(err)
+	    } else {
+	        console.info('%d caregiver activities documents were successfully stored.', docs.length);
+	    }
+	}
 
 	CaregiverPatActivities.find({aiimsId:aiimsId, timeMillies:{$gt:timeMillies-86400000}}, function (err, patActObjs){
 		if (err) {
@@ -452,6 +516,33 @@ function updateCaregiverPatientAct(aiimsId, gcmToken, activities,timeMillies,cal
 			});
 		}
 	})
+
+	/*Patient.findOne({"aiimsId":aiimsId}, function (err, patObj){
+		if(err){
+			console.log("masterCsv not updated.", err);
+		}
+		if(patObj==null){
+			console.log("Patient not found for the given aiimsId, masterCsv not updated.");
+		}
+			
+		else{
+			var activityNameObj = {
+				brushing: "caregiverResBrushing",
+				bathing: "caregiverResBathing",
+				breakfast: "caregiverResBreakfast",
+				walking: "caregiverResWalking", 
+				yoga: "caregiverResYoga"
+			}
+			var masterCsvObj = {};
+			var basicActivities = Object.keys(activityNameObj);
+			for(key in activities){
+				if(basicActivities.indexOf(key)>-1){
+					masterCsvObj[activityNameObj[key]] = activities[key];
+				}
+			}
+			updateMasterCsv(patObj.emailId, masterCsvObj);
+		}
+	})*/
 }
 
 function registerCaregiver(gcmToken, aiimsId, callback){
@@ -564,71 +655,55 @@ function updateMasterCsv(emailId, obj){
 	})
 }
 
-function savePatientAppUsage(emailId, aiimsId, accessToken, gcmToken, timeMillies, appUsageData, callback){
-	//console.log(timeMillies);
+function savePatientAppUsage(emailId, aiimsId, accessToken, gcmToken, appUsageData, lastTime, callback){
+	
 	var d = new Date(timeMillies);
-	//console.log("Save patient appUsage request receiving time - ", d);
+	
 	var patTime;
 	console.log("APP USAGE DATA", d,appUsageData);
-	//callback(null,JSON.stringify({"response":"success"}));
-	/*for(var i=0;i<appUsageData.length;i++){
-		
-		
-		if(appUsageData[i].mPackageName=="com.moodtools.moodtools"){
-			var t = Math.floor((Math.random() * 5) + 5)*60*1000;
-			//console.log("INITIAL", appUsageData[i].mTotalTimeInForeground)
-			appUsageData[i].mTotalTimeInForeground =appUsageData[i].mTotalTimeInForeground + t; 
-		}
-		if(appUsageData[i].mPackageName=="com.grofers.customerapp"){
-			var t = Math.floor((Math.random() * 2) + 1)*60*1000;
-			//console.log("INITIAL", appUsageData[i].mTotalTimeInForeground)
-			appUsageData[i].mTotalTimeInForeground =appUsageData[i].mTotalTimeInForeground + t; 
-		}
-		if(appUsageData[i].mPackageName=="com.the.best.android.crosswords.ever"){
-			var t = Math.floor((Math.random() * 10) + 10)*60*1000;
-			//console.log("INITIAL", appUsageData[i].mTotalTimeInForeground)
-			appUsageData[i].mTotalTimeInForeground =appUsageData[i].mTotalTimeInForeground + t; 
-		}
-		if(appUsageData[i].mPackageName=='com.android.launcher'){
-			var t = Math.floor((Math.random() * 5) + 5)*60*1000;
-			appUsageData[i].mTotalTimeInForeground =appUsageData[i].mTotalTimeInForeground + t; 
-		}
-		if(appUsageData[i].mPackageName=='com.android.chrome'){
-			var t = Math.floor((Math.random() * 5) + 10)*60*1000;
-			appUsageData[i].mTotalTimeInForeground =appUsageData[i].mTotalTimeInForeground + t; 
-		}
-		if(appUsageData[i].mPackageName=='com.android.systemui'){
-			var t = Math.floor((Math.random() * 5) + 5)*60*1000;
-			appUsageData[i].mTotalTimeInForeground =appUsageData[i].mTotalTimeInForeground + t; 
-		}
-		if(appUsageData[i].mPackageName=='com.google.android.googlequicksearchbox'){
-			var t = Math.floor((Math.random() * 3) + 3)*60*1000;
-			appUsageData[i].mTotalTimeInForeground =appUsageData[i].mTotalTimeInForeground + t; 
-		}
-		
-		if(appUsageData[i].mPackageName=='com.android.vending'){
-			var t = Math.floor((Math.random() * 5) + 5)*60*1000;
-			appUsageData[i].mTotalTimeInForeground =appUsageData[i].mTotalTimeInForeground + t; 
-		}
-		if(appUsageData[i].mPackageName=='com.mananwason.patientalarm.aiimspatientalarm'){
-			var t = Math.floor((Math.random() * 1) + 2)*60*1000;
-			appUsageData[i].mTotalTimeInForeground = t; 
-		}
-		if(appUsageData[i].mPackageName=='air.org.cambridge.venture.vocabulary'){
-			var t = Math.floor((Math.random() * 10) + 5)*60*1000;
-			appUsageData[i].mTotalTimeInForeground =appUsageData[i].mTotalTimeInForeground + t; 
-		}
-		
-		if(appUsageData[i].mPackageName=='com.google.android.music'){
-			var t = Math.floor((Math.random() * 5) + 15)*60*1000;
-			appUsageData[i].mTotalTimeInForeground =appUsageData[i].mTotalTimeInForeground + t; 
-		}
-		if(appUsageData[i].mPackageName=='net.one97.paytm'){
-			var t = Math.floor((Math.random() * 5) + 5)*60*1000;
-			appUsageData[i].mTotalTimeInForeground =appUsageData[i].mTotalTimeInForeground + t; 
-		}
-	}*/
-	PatientAppUsage.find({emailId:emailId, timeMillies:{$gt:timeMillies-86400000}}, function (err, patAppUsageObjs){
+	var appUsageBatch = new Array();
+	for (var i = 0; i < appUsageData.length; i++) {
+		var patientAppUsage = new PatientAppUsage({emailId:emailId,	aiimsId:aiimsId, gcmToken:gcmToken, accessToken:accessToken, timeMillies:appUsageData[i].timeInMillis, appUsage:appUsageData[i].appsUsage});	
+		appUsageBatch.push(patientAppUsage)
+	}
+
+	PatientAppUsage.collection.insert(appUsageBatch, onInsert);
+
+	function onInsert(err, docs) {
+	    if (err) {
+	    	console.log(err)
+	    	callback(null,JSON.stringify({"response":"error"}));
+	    } else {
+	        console.info('%d appUsage documents were successfully stored.', docs.length);
+	        Patient.findOne({aiimsId: aiimsId}, function (err, patObj) {
+	        	if (err) {
+	        		console.log(err);
+	        		callback(null,JSON.stringify({"response":"error"}));
+	        	} 
+	        	else if (patObj) {
+	        		patObj.lastAppUsageTime = lastTime;
+	              	patObj.save(function (err) {
+	        	      	if (err) {
+	        	      		console.log(err);
+	        	      		callback(err,JSON.stringify({"response":"error"}));
+	        	      	} else {
+	        	      		console.log('Updated', patObj.id, patObj.emailId);
+	        	      		callback(null,JSON.stringify({"response":"success"}));
+	        	      	}
+	              	});
+	          	}	
+	        	else {
+	        		console.log('User not found!');
+	        		callback(null,JSON.stringify({"response":"error"}));
+	        	}
+	        });	
+	    }
+	}
+
+	
+
+
+	/*PatientAppUsage.find({emailId:emailId, timeMillies:{$gt:timeMillies-86400000}}, function (err, patAppUsageObjs){
 		if (err) {
 			console.log(err);
 			callback(err,JSON.stringify({response:"error"}));
@@ -684,12 +759,51 @@ function savePatientAppUsage(emailId, aiimsId, accessToken, gcmToken, timeMillie
 			  	}
 			});
 		}	
-	})
+	})*/
 }
 
-function savePatientcallLogs(emailId, aiimsId, accessToken, gcmToken, timeMillies, callLogData, callback){
+function savePatientcallLogs(emailId, aiimsId, accessToken, gcmToken, callLogData, callback){
 	var d = new Date(timeMillies);
 	var patTime;
+
+	var callLogBatch = new Array();
+	for (var i = 0; i < callLogData.length; i++) {
+		var patientCallLogs = new PatientCallLogs({emailId:emailId,	aiimsId:aiimsId, gcmToken:gcmToken, accessToken:accessToken, timeMillies:callLogData[i].timeInMillis, callLogs:callLogData[i].callLog});
+		callLogBatch.push(patientCallLogs)
+	}
+
+	PatientCallLogs.collection.insert(callLogBatch, onInsert);
+
+	function onInsert(err, docs) {
+	    if (err) {
+	    	console.log(err)
+	    	callback(null,JSON.stringify({"response":"error"}));
+	    } else {
+	        console.info('%d callLogs documents were successfully stored.', docs.length);
+	        Patient.findOne({aiimsId: aiimsId}, function (err, patObj) {
+	        	if (err) {
+	        		console.log(err);
+	        		callback(null,JSON.stringify({"response":"error"}));
+	        	} 
+	        	else if (patObj) {
+	        		patObj.lastCallLogsTime = lastTime;
+	              	patObj.save(function (err) {
+	        	      	if (err) {
+	        	      		console.log(err);
+	        	      		callback(err,JSON.stringify({"response":"error"}));
+	        	      	} else {
+	        	      		console.log('Updated', patObj.id, patObj.emailId);
+	        	      		callback(null,JSON.stringify({"response":"success"}));
+	        	      	}
+	              	});
+	          	}	
+	        	else {
+	        		console.log('User not found!');
+	        		callback(null,JSON.stringify({"response":"error"}));
+	        	}
+	        });	
+	    }
+	}
 	/*console.log("CCCCCCCCCCCCCCCCCCC", callLogData);
 	PatientCallLogs.find({emailId:emailId, timeMillies:{$gt:timeMillies-86400000}}, function (err, patCallLogObjs){
 		if (err) {
@@ -949,8 +1063,8 @@ function findPatient(emailId, accessToken, gcmToken, callback){
 }
 
 function registerPatient(aiimsId, emailId, patientName, selfPhn, caretakerPhn, accessToken, gcmToken, callback){
-	updateMasterCsv(emailId, {emailId:emailId, aiimsId:aiimsId, patientName:patientName});
-
+	//updateMasterCsv(emailId, {emailId:emailId, aiimsId:aiimsId, patientName:patientName});
+	var d = new Date();
 	Patient.findOne({emailId: emailId}, function (err, patObj) {
 		if (err) {
 			console.log(err);
@@ -972,6 +1086,9 @@ function registerPatient(aiimsId, emailId, patientName, selfPhn, caretakerPhn, a
 			patObj.caretakerPhn = caretakerPhn;
 			patObj.gcmToken = gcmToken;
 			patObj.accessToken = accessToken;
+			patObj.lastAppUsageTime = d.getTime();
+			patObj.lastCallLogsTime = d.getTime();
+			patObj.lastActivitiesTime = d.getTime();
 			
 	      	patObj.save(function (err) {
 		      	if (err) {
@@ -985,7 +1102,8 @@ function registerPatient(aiimsId, emailId, patientName, selfPhn, caretakerPhn, a
 	  	}	
 		else {
 			console.log('User not found!');
-			var patient = new Patient({emailId:emailId,	aiimsId:aiimsId, patientName:patientName, caretakerPhn:caretakerPhn,selfPhn:selfPhn, gcmToken:gcmToken, accessToken:accessToken, alarmStartTime:-1, numberOfSteps:-1, stepsWaitingTime:-1});
+			var patient = new Patient({emailId:emailId,	aiimsId:aiimsId, patientName:patientName, caretakerPhn:caretakerPhn,selfPhn:selfPhn, gcmToken:gcmToken, accessToken:accessToken, alarmStartTime:-1, numberOfSteps:-1, stepsWaitingTime:-1,
+				lastAppUsageTime:d.getTime(), lastCallLogsTime:d.getTime(), lastActivitiesTime:d.getTime()});
 			patient.save(function (err, patObj) {
 			 	if (err) {
 			    	console.log(err);
