@@ -247,8 +247,13 @@
                 var time = $('#setAlarmTime').val().split(" : ");
                 console.log(time);
                 if(time[2]=="PM"){
-                    console.log(Number(time[0])+12)
-                    d.setHours(Number(time[0])+12);
+                    if(Number(time[0])==12){
+                        d.setHours(Number(time[0]));    
+                    }
+                    else{
+                        d.setHours(Number(time[0])+12);    
+                    }
+                    console.log(d.getHours());
                 }
                 else if(time[2]=="AM" && time[0]==12){
                     d.setHours(0);

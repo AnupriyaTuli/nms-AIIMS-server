@@ -5,7 +5,7 @@ var _               = require('underscore'),
     entities        = require('he');
 
 // Globals
-var apiBase = 'https://www.googleapis.com/language/translate/v2/',
+var apiBase = 'https://translation.googleapis.com/language/translate/v2/',
     maxGetQueryLen = 4900, // Limit is actually 2000, but let's just be safe
     maxSegments = 127,
     concurrentLimit = 10; // Max num concurrent requests. Can be overridden by passing a new limit when requiring module
@@ -135,7 +135,7 @@ var shouldSplitSegments = function(strings) {
 
   // Google allows a maximum of 128 segments
   if (strings.length > maxSegments) return true;
-   
+
   // Google allows max of 5k characters
   return encodeURIComponent(strings.join(',')).length > maxGetQueryLen && strings.length !== 1;
 };

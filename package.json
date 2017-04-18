@@ -11,6 +11,7 @@
   "dependencies": {
     "bcryptjs": "^2.3.0",
     "body-parser": "latest",
+    "cloc": "^2.2.0",
     "connect-flash": "^0.1.1",
     "cookie-parser": "latest",
     "ejs": "latest",
@@ -30,6 +31,7 @@
     "passport-google-token": "^0.1.2",
     "passport-local": "^1.0.0",
     "path": "^0.12.7",
-    "serve-static": "^1.10.2"
+    "serve-static": "^1.10.2",
+    "sloc": "^0.2.0"
   }
 }

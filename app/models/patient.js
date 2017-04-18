@@ -16,6 +16,10 @@ var patientSchema = mongoose.Schema({
 	caregivers:[String],
 	lastAppUsageTime:Number,
 	lastCallLogsTime:Number,
-	lastActivitiesTime:Number
+	lastActivitiesTime:Number,
+	lastCarActivitiesTime:Number,
+	lastAlarmLogTime:Number,
+	lastWalkLogTime:Number,
+	lastCaregiverActivityTime:Number
 });
 module.exports = mongoose.model("patient",patientSchema);
