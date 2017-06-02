@@ -6,6 +6,9 @@ var PatientCallLogs = require('./models/patientCallLogs')
 var PatientAppUsage = require('./models/patientAppUsage')
 var PatientAlarmLog = require('./models/patientAlarmLog')
 var PatientWalkLog = require('./models/patientWalkLog')
+var CapsuleLogs = require('./models/capsuleLogs')
+var CapsuleUser = require('./models/capsuleUser')
+
 var MasterCsv = require('./models/masterCsv');
 var gcm = require('node-gcm');
 var json2csv = require('json2csv');
@@ -77,6 +80,55 @@ module.exports = function(app,passport){
 		reqData["accessToken"] = req.body.access_token;
 
 		registerPatient(reqData["aiimsId"], reqData["emailId"], reqData["patientName"], reqData["selfPhn"], reqData["caretakerPhn"],reqData["accessToken"],reqData["gcmToken"],function(err, result) {
+		    res.writeHead(200, {
+		      'Content-Type' : 'x-application/json'
+		    });
+		    res.end(result);
+		  });
+	})
+
+	app.post("/api/app/capsule/register/user", function(req, res){
+		var reqData = new Array();
+		console.log(req.body);
+		reqData["uId"] = req.body.uId;
+		reqData["emailId"] = req.body.emailId;
+		reqData["gender"] = req.body.gender;
+		reqData["age"] = req.body.age;
+		reqData["primaryContact"] = req.body.primaryContact;
+		reqData["altContact"] = req.body.altContact;
+		reqData["savedPreferencesPosition"] = req.body.savedPreferencesPosition;
+		reqData["savedPreferences"] = req.body.savedPreferences;
+		
+		registerCapsuleUser(reqData["uId"], reqData["emailId"], reqData["gender"], reqData["age"], reqData["primaryContact"],reqData["altContact"],reqData["savedPreferences"],reqData["savedPreferencesPosition"],function(err, result) {
+		    res.writeHead(200, {
+		      'Content-Type' : 'x-application/json'
+		    });
+		    res.end(result);
+		  });
+	})
+
+	app.post("/api/app/capsule/user/log", function(req, res){
+		var reqData = new Array();
+		console.log(req.body);
+		//reqData["uId"] = req.body.uId;
+		//reqData["emailId"] = req.body.emailId;
+		//reqData["timestmp"] = req.body.timestamp;
+		reqData["log"] = req.body;
+		capsuleUserLog(reqData["log"], function(err, result) {
+		    res.writeHead(200, {
+		      'Content-Type' : 'x-application/json'
+		    });
+		    res.end(result);
+		  });
+	})
+
+	app.post("/api/app/capsule/login/user", function(req, res){
+		var reqData = new Array();
+		console.log(req.body);
+		reqData["uId"] = req.body.userId;
+		reqData["emailId"] = req.body.emailId;
+		
+		capsuleUserLogin(reqData["uId"], reqData["emailId"],function(err, result) {
 		    res.writeHead(200, {
 		      'Content-Type' : 'x-application/json'
 		    });
@@ -1186,7 +1238,7 @@ function updatePatientActivities(emailId, aiimsId, accessToken, gcmToken, activi
 			}
 		});*/
 	//})
-	var activityNameObj = {
+	/*var activityNameObj = {
 		brushing: "brushing", 
 		bathing: "bathing", 
 		breakfast: "breakfast",
@@ -1199,7 +1251,7 @@ function updatePatientActivities(emailId, aiimsId, accessToken, gcmToken, activi
 		if(basicActivities.indexOf(key)>-1){
 			masterCsvObj[key] = activities[key];
 		}
-	}
+	}*/
 	//console.log("--------------------",masterCsvObj);
 	//updateMasterCsv(emailId, masterCsvObj);
 }
@@ -1354,6 +1406,90 @@ function registerPatient(aiimsId, emailId, patientName, selfPhn, caretakerPhn, a
 			});
 		}
 	});	
+}
+
+function capsuleUserLogin(uId, emailId, callback){
+	//updateMasterCsv(emailId, {emailId:emailId, aiimsId:aiimsId, patientName:patientName});
+	var d = new Date();
+	CapsuleUser.findOne({emailId: emailId}, function (err, patObj) {
+		if (err) {
+			console.log(err);
+			callback(err,JSON.stringify({response:"error"}));
+		}
+		else if (patObj) {
+			console.log("Found capsule user!")
+			callback(null,JSON.stringify({response:"success", user:patObj}));
+	  	}	
+		else {
+			console.log("Capsule user not found!")
+			callback(err,JSON.stringify({response:"failure"}));
+		}
+	});	
+}
+
+function registerCapsuleUser(uId, emailId, gender, age, primaryContact, altContact, savedPreferences, savedPreferencesPosition, callback){
+	//updateMasterCsv(emailId, {emailId:emailId, aiimsId:aiimsId, patientName:patientName});
+	CapsuleUser.findOne({emailId: emailId}, function (err, patObj) {
+		if (err) {
+			console.log(err);
+			callback(err,JSON.stringify({response:"failure"}));
+		}
+		else if(patObj){
+			console.log("********************\n********************", savedPreferences);
+			console.log("********************\n********************", savedPreferencesPosition);
+			patObj.savedPreferences = savedPreferences;
+			patObj.savedPreferencesPosition = savedPreferencesPosition;
+			patObj.save(function (err, patObj) {
+			 	if (err) {
+			    	console.log(err);
+			    	callback(err,JSON.stringify({"response":"failure"}));
+			  	}
+			  	else {
+			    	console.log('saved successfully:', patObj.id, patObj.emailId);
+			    	callback(null,JSON.stringify({"response":"success"}));
+			  	}
+			});
+			
+	  	}	
+		else {
+			var capsuleUser = new CapsuleUser({emailId:emailId,	uId:uId, gender:gender, age:age, primaryContact:primaryContact, altContact:altContact, savedPreferences:savedPreferences, savedPreferencesPosition:savedPreferencesPosition});
+			capsuleUser.save(function (err, patObj) {
+			 	if (err) {
+			    	console.log(err);
+			    	callback(err,JSON.stringify({"response":"failure"}));
+			  	}
+			  	else {
+			    	console.log('saved successfully:', patObj.id, patObj.emailId);
+			    	callback(null,JSON.stringify({"response":"success"}));
+			  	}
+			});
+		}
+	});	
+}
+
+function capsuleUserLog(log, callback){
+	//updateMasterCsv(emailId, {emailId:emailId, aiimsId:aiimsId, patientName:patientName});
+	if(log){
+		logData = new Array();
+		for (var i = 0; i < log.length; i++) {
+			var logElement = {log:log[i].logData.logData, timestmp:log[i].logData.timestamp, uId:log[i].userInfo.userId, emailId:log[i].userInfo.emailId};
+			logData.push(logElement);
+		}		
+		CapsuleLogs.collection.insert(logData, onInsert);
+
+		function onInsert(err, docs) {
+		    if (err) {
+		    	console.log(err)
+		    	callback(null,JSON.stringify({"response":"error"}));
+		    } else {
+		        console.info('%d Capsule logs documents were successfully stored.', docs.length);
+		        callback(null,JSON.stringify({"response":"success"}));
+		    }
+		}
+	}
+	else{
+		callback(null,JSON.stringify({"response":"success"}));
+	}
 }
 
 function registerUser(name, appId, emailId, regToken, callback){
