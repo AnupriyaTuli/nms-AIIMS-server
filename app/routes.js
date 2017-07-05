@@ -1472,7 +1472,7 @@ function capsuleUserLog(log, callback){
 	if(log){
 		logData = new Array();
 		for (var i = 0; i < log.length; i++) {
-			var logElement = {log:log[i].logData.logData, timestmp:log[i].logData.timestamp, uId:log[i].userInfo.userId, emailId:log[i].userInfo.emailId};
+			var logElement = {log:log[i].logData.logData, timestmp:log[i].logData.timeStamp, uId:log[i].userInfo.userId, emailId:log[i].userInfo.emailId};
 			logData.push(logElement);
 		}		
 		CapsuleLogs.collection.insert(logData, onInsert);
